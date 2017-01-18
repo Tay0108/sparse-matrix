@@ -1,7 +1,7 @@
+/* Krzysztof Kosecki, 18.01.2017, 17:00 wersja C */
 #include <stdio.h>
 #include <stdlib.h>
-
-/* Krzysztof Kosecki, 18.01.2017, wersja C */
+#include <float.h>
 
 struct point {
     int row;
@@ -15,24 +15,21 @@ struct limits {
     struct point* maxValue;
 };
 
-struct point* rewrite(double tab[][5], int rows, int cols) {
-    /* Funkcja bierze wskaznik na pierwszy element tablicy, tworzy liste i przepisuje ka¿dy niezerowy element tablicy
-        jako nowy node z polami i,j,t[i][j] */
-    /*double (*array)[rows] = tab; VLA, mamy tego nie uzywac */
-
+struct point* rewrite(double **arrayPointer, int rows, int cols) {
+    /* Funkcja bierze wskaznik na tablice wskaznikow, do ktorej przepisalismy macierz, tworzy liste i przepisuje kazdy niezerowy element macierzy
+        jako nowy node z polami i,j,arrayPointer[i][j] */
     int i,j;
     struct point* head = NULL;
     struct point* newNode;
 
     for(i=0;i<rows;i++) {
         for(j=0;j<cols;j++) {
-
-            if(tab[i][j] != 0) {
-                    /* tutaj funkcja tworzy nowy node, wpisuje tam i,j i t[i][j] */
+            if(arrayPointer[i][j] != 0) {
+                    /* tutaj funkcja tworzy nowy node, wpisuje tam i,j i arrayPointer[i][j] */
                     newNode = (struct point*)malloc(sizeof(struct point));
                     newNode->row = i;
                     newNode->col = j;
-                    newNode->value = tab[i][j];
+                    newNode->value = arrayPointer[i][j];
                     /* wpinanie tego nowego node'a: */
                     newNode->next = head;
                     head = newNode;
@@ -42,9 +39,9 @@ struct point* rewrite(double tab[][5], int rows, int cols) {
     return head;
 }
 
-void displayList(struct point* head) {
+void displayList(struct point* head) { /* funkcja wyswietla liste, od tylu, ale nie bylo powiedziane w jakiej kolejnosci */
+    printf("Zawartosc listy: \n\n");
     while(head != NULL) {
-
         printf("Wiersz: %d\n",head->row);
         printf("Kolumna: %d\n",head->col);
         printf("Wartosc: %f\n",head->value);
@@ -55,9 +52,8 @@ void displayList(struct point* head) {
 
 struct limits findLimits(struct point* head) {
     struct limits listLimits;
-    double minValue = 10000;
-    double maxValue = 0;
-
+    double minValue = DBL_MAX;
+    double maxValue = -DBL_MAX; /* DBL_MIN zwraca 0.000, czyli najmniejsza niemniejsza od 0, natomiast liczby zmiennoprzecinkowe sa symetryczne, wiec mozna uzyc -DBL_MAX */
     while(head != NULL) {
         if(head->value < minValue) {
             listLimits.minValue = head;
@@ -74,31 +70,43 @@ struct limits findLimits(struct point* head) {
 
 int main(void) {
 
-    /* Przykladowa tablica do testow: */
+    /* Przykladowa macierz rzadka: */
 
-    double tab[5][5] = {
-        {2,0,0,0,5},
-        {0,3,2,1,0},
-        {1,3,0,0,4},
-        {0,4,0,4,0},
-        {0,1,0,0,0}
+    double matrix[5][5] = {
+        {-1.2,0,0,0,0},
+        {0,0,0.1,0,0},
+        {0,0,2,0,0},
+        {0,0,3,0,0},
+        {-5,0,0,0,0}
     };
-
+    /* wymiary tablicy: */
+    int rows = 5;
+    int cols = 5;
+    double* p[5]; /* cols, tablica wskaznikow do poszczegolnych wierszy, zeby funkcja byla uniwersalna */
+    int i;
     struct point* head; /* wskaznik na poczatek listy */
-    struct limits listLimits;
+    struct limits listLimits; /* struktura do wartosci najwiekszej i najmniejszej */
 
-    head = rewrite(tab,5,5);
-    displayList(head);
-    listLimits = findLimits(head);
-    printf("Element minimalny: \n");
-    printf("Wiersz: %d\n",listLimits.minValue->row);
-    printf("Kolumna: %d\n",listLimits.minValue->col);
-    printf("Wartosc: %f\n",listLimits.minValue->value);
-    printf("Element maksymalny: \n");
+    for (i=0; i<cols;i++) { /* przepisanie macierzy, zeby funkcja mogla pobrac wskaznik */
+      p[i] = matrix[i];
+    }
 
-    printf("Wiersz: %d\n",listLimits.maxValue->row);
-    printf("Kolumna: %d\n",listLimits.maxValue->col);
-    printf("Wartosc: %f\n",listLimits.maxValue->value);
-    /* czy zwalniac pamiec przed wyjsciem z programu? */
+    head = rewrite(p,rows,cols); /* wywolanie funkcji przepisujacej */
+    if(head != NULL) { /* na wypadek macierzy wypelnionej zerami */
+      displayList(head); /* wyswietlanie listy, czyli wspolrzedne i wartosc */
+      listLimits = findLimits(head);  /* znalezienie wezlow z wartoscia minimalna i maksymalna */
+      printf("---------------\n\n");
+      printf("Element minimalny: \n");
+      printf("Wiersz: %d\n",listLimits.minValue->row);
+      printf("Kolumna: %d\n",listLimits.minValue->col);
+      printf("Wartosc: %f\n\n",listLimits.minValue->value);
+      printf("Element maksymalny: \n");
+      printf("Wiersz: %d\n",listLimits.maxValue->row);
+      printf("Kolumna: %d\n",listLimits.maxValue->col);
+      printf("Wartosc: %f\n",listLimits.maxValue->value);
+    }
+    else {
+      printf("Macierz jest wypelniona samymi zerami.\n");
+    }
     return 0;
 }
